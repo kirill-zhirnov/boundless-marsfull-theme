@@ -17,8 +17,9 @@ import {makeBreadCrumbsFromCats} from '../../lib/breadcrumbs';
 import ProductShipping from '../../components/product/Shipping';
 import {IMenuItem} from '../../@types/components';
 import ProductsSliderByQuery from '../../components/ProductsSliderByQuery';
+import {IBasicSettings} from '../../@types/settings';
 
-export default function ProductPage({data: {product, categoryParents, mainMenu, footerMenu}}: InferGetStaticPropsType<typeof getStaticProps>) {
+export default function ProductPage({data: {product, categoryParents, mainMenu, footerMenu, basicSettings}}: InferGetStaticPropsType<typeof getStaticProps>) {
 	const [resolvedParents, setResolvedParents] = useState(categoryParents);
 	const router = useRouter();
 	const query = useMemo<ParsedQs>(() => qs.parse(router.asPath.split('?')[1] || ''), [router.asPath]);
@@ -33,7 +34,7 @@ export default function ProductPage({data: {product, categoryParents, mainMenu, 
 		const categoryId = category ? parseInt(category as string) : null;
 		if (!categoryId) return;
 
-		const notDefaultCat = product.categoryRels.some(cat => (cat.is_default !== true && cat.category_id === categoryId));
+		const notDefaultCat = product.categoryRels.some(cat => (cat.is_default !== true && cat.category.category_id === categoryId));
 
 		if (notDefaultCat) {
 			fetchParents(categoryId);
@@ -58,6 +59,7 @@ export default function ProductPage({data: {product, categoryParents, mainMenu, 
 			mainMenu={mainMenu}
 			metaData={getProductMetaData(product)}
 			title={product.seo.title}
+			basicSettings={basicSettings}
 		>
 			<div className={'container'}>
 				<BreadCrumbs items={breadcrumbItems} />
@@ -65,7 +67,7 @@ export default function ProductPage({data: {product, categoryParents, mainMenu, 
 					<div className='row'>
 						<div className='col-md-7'>
 							<h1 className='product-page__header mb-4' itemProp='name'>
-								{product.text.title}
+								{product.title}
 							</h1>
 							<ProductLabels labels={product.labels} className={'mb-3'} />
 							<ProductImages product={product} />
@@ -74,7 +76,7 @@ export default function ProductPage({data: {product, categoryParents, mainMenu, 
 							<ProductVariantAndBuy product={product} />
 							<hr className='product-page__hr' />
 							<ProductCharacteristics
-								characteristics={product.nonVariantCharacteristics!}
+								characteristics={product.attributes!}
 								manufacturer={product.manufacturer}
 								size={product.props.size}
 							/>
@@ -138,10 +140,10 @@ export const getStaticProps: GetStaticProps<IProductPageProps> = async ({params}
 		}
 	}
 
-	if (data?.product?.text.url_key && data?.product?.text.url_key !== slug) {
+	if (data?.product?.url_key && data?.product?.url_key !== slug) {
 		return {
 			redirect: {
-				destination: `/product/${data?.product?.text.url_key}`,
+				destination: `/product/${data?.product?.url_key}`,
 				permanent: true,
 			}
 		};
@@ -157,18 +159,20 @@ export const getStaticProps: GetStaticProps<IProductPageProps> = async ({params}
 const fetchData = async (slug: string) => {
 	const product = await apiClient.catalog.getProduct(slug as string);
 
-	const categoryId = product.categoryRels.find(cat => cat.is_default === true)?.category_id;
+	const categoryId = product.categoryRels.find(cat => cat.is_default === true)?.category.category_id;
 	let categoryParents = null;
 	if (categoryId) {
 		categoryParents = await apiClient.catalog.getCategoryParents(categoryId);
 	}
 
 	const categoryTree = await apiClient.catalog.getCategoryTree({menu: 'category'});
+	const basicSettings = await apiClient.system.fetchSettings(['system.locale', 'system.currency']) as IBasicSettings;
 	const menus = makeAllMenus({categoryTree});
 
 	return {
 		product,
 		categoryParents,
+		basicSettings,
 		...menus
 	};
 };
@@ -183,4 +187,5 @@ interface IProductPageData {
 	categoryParents: ICategoryFlatItem[] | null;
 	mainMenu: IMenuItem[];
 	footerMenu: IMenuItem[];
+	basicSettings: IBasicSettings;
 }
