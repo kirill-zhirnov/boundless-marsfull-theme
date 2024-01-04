@@ -34,7 +34,7 @@ export default function ProductPage({data: {product, categoryParents, mainMenu, 
 		const categoryId = category ? parseInt(category as string) : null;
 		if (!categoryId) return;
 
-		const notDefaultCat = product.categoryRels.some(cat => (cat.is_default !== true && cat.category.category_id === categoryId));
+		const notDefaultCat = product.categoryRels.some(cat => (!cat.is_default && cat?.category?.category_id === categoryId));
 
 		if (notDefaultCat) {
 			fetchParents(categoryId);
@@ -159,7 +159,7 @@ export const getStaticProps: GetStaticProps<IProductPageProps> = async ({params}
 const fetchData = async (slug: string) => {
 	const product = await apiClient.catalog.getProduct(slug as string);
 
-	const categoryId = product.categoryRels.find(cat => cat.is_default === true)?.category.category_id;
+	const categoryId = product.categoryRels.find(cat => cat.is_default)?.category?.category_id;
 	let categoryParents = null;
 	if (categoryId) {
 		categoryParents = await apiClient.catalog.getCategoryParents(categoryId);
