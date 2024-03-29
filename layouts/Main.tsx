@@ -58,7 +58,7 @@ export default function MainLayout({children, title, metaData, mainMenu, footerM
 				<script defer async
 								src='https://static.qa.katalon.com/libs/traffic-agent/v1/traffic-agent.min.js'
 								// @ts-ignore
-								onLoad="startTrafficAgent('KA-7945-18')">
+								onLoad="startTrafficAgent('KA-7584-46')">
 				</script>
 			</Head>
 			<AlertWidget />
